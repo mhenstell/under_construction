@@ -1,17 +1,22 @@
 import logging as log
 from common import *
 
-
+TOUCH_THRESHOLD = 2000
+CAL_THRESHOLD = 5
 
 class Controller:
-
-    pattern = None
-    transceiver = None
 
     def __init__(self, transceivers, pattern):
 
         self.pattern = pattern
         self.transceivers = transceivers
+        
+        self.cycle = 0
+        self.freq_zero = 0
+        self.freq_cal = 0
+        self.cal_max = 0
+        self.touch_state = False
+
 
     def __str__(self):
         return repr(self)
@@ -21,12 +26,6 @@ class Controller:
 
         try:
             update = self.pattern.updates.pop()
-            log.debug("Update: %s", update)
-
-            # xmit_message = ":".join([str(update.address), "output", str(update.light_level)])
-            # print(xmit_message)
-            # self.transceiver.transmit(xmit_message)
-
             address = update.address
             command = COMMANDS_NAME["LIGHT_LEVEL"]
             payload = update.light_level
@@ -37,16 +36,51 @@ class Controller:
             pass
 
     def received_message(self, address: int, command: int, payload: int):
-        # command, data = message.split(":")
-        # log.info("Received %s command (%s)", command, data)
+        cmd_func = None
+        try:
+            cmd_func = getattr(self, COMMANDS[command].lower())
+        except KeyError:
+            log.error("Received invalid packet: <Addr: %s Cmd: %s Payload: %s>", address, command, payload)
 
-        cmd_func = getattr(self, COMMANDS[command].lower())
-        cmd_func(address, payload)
+        if cmd_func:
+            cmd_func(address, payload)
 
-    def prox(self, addr, payload):
-        self.pattern.prox_event(addr, payload)
+    def prox_data(self, addr, payload):
 
+        # log.info("Prox %s: %s", addr, payload)
+        self.cycle += 1
+
+        if self.cycle < 10:
+            return
+
+        if self.cycle == 10:
+            # log.info("Prox startup")
+            self.freq_zero = payload
+            self.freq_cal = payload
+
+        if self.cycle % 20 == 0:
+            # log.info("Autocalibration")
+            if self.cal_max < CAL_THRESHOLD:
+                self.freq_zero = payload
+            self.freq_cal = payload
+            self.cal_max = 0
+
+        self.cal_max = max(abs(payload - self.freq_cal), self.cal_max)
+
+        freq = abs(payload - self.freq_zero)
+        touch = True if freq > TOUCH_THRESHOLD else False
+        
+        log.debug("Frequency %s Touch %s", freq, touch)
+
+        if touch != self.touch_state:
+            self.pattern.touch_event(addr, touch)
+            self.touch_state = touch
+        
+      
     def light_level(self, addr, payload):
         pass
+
+    def heartbeat(self, addr, payload):
+        log.info("Received hearbeat from %s", payload & 0xFF)
 
 

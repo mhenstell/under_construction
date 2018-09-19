@@ -11,13 +11,17 @@ from light import Light
 
 quit = False
 
-def signal_handler(sig, frame, transceiver):
+lights = [Light(x) for x in range(0, 10)]
+pattern = Pattern(lights)
+
+def signal_handler(sig, frame, transceivers):
     global quit
 
     log.warning('You pressed Ctrl+C!')
-    log.warning("Stopping transceiver " + str(transceiver))
     quit = True
-    transceiver.stop()
+    
+    for transceiver in transceivers:
+        transceiver.stop()
     try:
         sys.exit(0)
     except:
@@ -26,37 +30,32 @@ def signal_handler(sig, frame, transceiver):
 def run(args: list):
     log.debug("Running with args: %s", args)
 
-    lights = [Light(x) for x in range(0, 10)]
-    pattern = Pattern(lights)
-    
-    redis_transceiver = None
-    serial_transceiver = None
+    transceivers = []
 
     if args.redis:
         import redis_xcvr
-        redis_transceiver = redis_xcvr.Transceiver()
+        transceivers.append(redis_xcvr.Transceiver())
 
     if args.port is not None:
         import serial_xcvr
-        serial_transceiver = serial_xcvr.Transceiver(args.port)
-
-    transceivers = []
-    for transceiver in [redis_transceiver, serial_transceiver]:
-        if transceiver is not None:
-            transceivers.append(transceiver)
+        transceivers.append(serial_xcvr.Transceiver(args.port))
 
     cont = Controller(transceivers, pattern)
 
     for transceiver in transceivers:
-        transceiver.register_controller(cont)
+        transceiver.register_callback(cont.received_message)
 
     log.debug("Registering signal handler")
-    handler = partial(signal_handler, transceiver=transceiver)
+    handler = partial(signal_handler, transceivers=transceivers)
     signal.signal(signal.SIGINT, handler)
 
+    a = 0
+    
     while quit is False:
         cont.tick()
-        time.sleep(0.001)
+        for transceiver in transceivers:
+            transceiver.tick()
+        # time.sleep(0.001)
 
 if __name__ == "__main__":
 
