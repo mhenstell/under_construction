@@ -5,6 +5,7 @@
 
 #define BULB 6
 #define PROX_INPUT 5
+#define LED 7
 
 #define BROADCAST 0xFF
 #define PROX_DATA 0x01
@@ -43,7 +44,7 @@ long lastSent = 0;
 
 
 volatile uint8_t newTouchByte = 0;
-volatile bool sendTouchByte = true;
+volatile bool sendTouchByte = false;
 
 
 
@@ -63,7 +64,7 @@ void hdlc_frame_handler(const uint8_t *data, uint16_t len) {
   }
   Serial.println();
 
-  handlePacket(data);
+//  handlePacket(data);
 
 }
 
@@ -99,9 +100,9 @@ void handlePacket(uint8_t *data)
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial) {
-    delay(1);  // wait until serial console is open, remove if not tethered to computer
-  }
+//  while (!Serial) {
+//    delay(1);  // wait until serial console is open, remove if not tethered to computer
+//  }
 
   char id[4];
   for (int i = 0; i < 4; i++)
@@ -129,6 +130,9 @@ void setup()
   pinMode(BULB, OUTPUT);
   digitalWrite(BULB, LOW);
 
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
+
   pinMode(PIN_RADIO_IRQ, INPUT);
   digitalWrite(PIN_RADIO_IRQ, HIGH);
 
@@ -144,6 +148,7 @@ void setup()
   digitalWrite(RFM69_RST, LOW);
   delay(10);
 
+  Serial.println("Radio init...");
   if (!rf69.init()) {
     Serial.println("RFM69 radio init failed");
     while (1);
@@ -157,13 +162,13 @@ void setup()
 
   // If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
   // ishighpowermodule flag set like this:
-  rf69.setTxPower(14, true);  // range from 14-20 for power, 2nd arg must be true for 69HCW
+  rf69.setTxPower(-2, true);  // range from 14-20 for power, 2nd arg must be true for 69HCW
 
-  // The encryption key has to be the same as the one in the server
-  uint8_t key[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-                    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
-                  };
-  rf69.setEncryptionKey(key);
+//  // The encryption key has to be the same as the one in the server
+//  uint8_t key[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+//                    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
+//                  };
+//  rf69.setEncryptionKey(key);
 
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 
@@ -173,14 +178,32 @@ void setup()
   //  readConfiguration(&thisConfig);
   //  setThreshold(thisConfig.TouchThreshold);
 
-  delay(1000);
+//  delay(1000);
+
+
+  analogWrite(BULB, 255);
+  delay(100);
+  for (int i=255; i >= 0; i--) {
+    analogWrite(BULB, i);
+    delay(2);
+  }
+
+  digitalWrite(LED, HIGH);
+  delay(100);
+  digitalWrite(LED, LOW);
+  delay(100);
+  digitalWrite(LED, HIGH);
+  delay(100);
+  digitalWrite(LED, LOW);
+  delay(100);
+
   attachInterrupt(digitalPinToInterrupt(PROX_IRQ), getProxData, FALLING);
 }
 
 void getProxData()
 {
   cli();
-    Serial.print("Prox interrupt: ");
+//    Serial.print("Prox interrupt: ");
 
   // enable Slave Select
   digitalWrite(PROX_CS, LOW);
@@ -189,10 +212,12 @@ void getProxData()
   uint8_t input = SPI.transfer(0);
   digitalWrite(PROX_CS, HIGH);
 
-    Serial.println(input);
+//    Serial.println(input);
 
   newTouchByte = input;
   sendTouchByte = true;
+
+//  digitalWrite(LED, HIGH);
   
   sei();
 }
@@ -209,17 +234,21 @@ void getProxData()
 void loop()
 {
 
-  //  if (millis() - lastSent > 50) {
-  //    lastSent = millis();
-  //
-  //    Serial.print("Sending ");
-  //    Serial.println(count);
-  //    uint8_t buf[10];
-  //    uint8_t packet[] = {RADIO_ID, PROX_DATA, count >> 8, count & 0xFF};
-  //    uint8_t len = hdlc.makeBuffer(packet, buf, 4);
-  //    rf69.send(buf, 8);
-  //    rf69.waitPacketSent();
-  //  }
+    if (millis() - lastSent > 50) {
+      lastSent = millis();
+  
+      Serial.print("Sending ");
+      Serial.println(count);
+      uint8_t buf[10];
+      uint8_t packet[] = {RADIO_ID, PROX_DATA, count >> 8, count & 0xFF};
+      uint8_t len = hdlc.makeBuffer(packet, buf, 4);
+      rf69.send(buf, 8);
+      rf69.waitPacketSent();
+
+        digitalWrite(LED, HIGH);
+        delay(25);
+        digitalWrite(LED, LOW);
+    }
 
     if (rf69.available()) {
       uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
@@ -231,23 +260,26 @@ void loop()
       }
     }
 
-  if (sendTouchByte)
-  {
-    Serial.print("Touch byte: ");
-    Serial.println(newTouchByte);
-
-    uint8_t buf[10];
-    uint8_t packet[] = {RADIO_ID, PROX_DATA, newTouchByte};
-    uint8_t len = hdlc.makeBuffer(packet, buf, sizeof(packet) / sizeof(packet[0]));
-
-    rf69.send(buf, len);
-    rf69.waitPacketSent();
-
-    Serial.println("Sent");
-
-
-    sendTouchByte = false;
-  }
+//  if (sendTouchByte)
+//  {
+//    Serial.print("Touch byte: ");
+//    Serial.println(newTouchByte);
+//
+//    uint8_t buf[10];
+//    uint8_t packet[] = {RADIO_ID, PROX_DATA, newTouchByte};
+//    uint8_t len = hdlc.makeBuffer(packet, buf, sizeof(packet) / sizeof(packet[0]));
+//
+////    cli();
+//    rf69.send(buf, len);
+//    rf69.waitPacketSent();
+////    sei();
+//
+////    Serial.println("Sent");
+////    digitalWrite(LED, LOW);
+//
+//
+//    sendTouchByte = false;
+//  }
 
 }
 

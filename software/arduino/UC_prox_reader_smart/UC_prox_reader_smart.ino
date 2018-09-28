@@ -1,7 +1,9 @@
 #include <EEPROM.h>
 #include <FreqCount.h>
+#include <Wire.h>
 
-#define IRQ 2
+//#define IRQ 2
+//#define PROX_CS 3
 #define RECAL_CYCLES 20
 #define RECAL_THRESHOLD 2
 
@@ -19,6 +21,9 @@ uint16_t count = 0;
 bool touchEventActive = false;
 uint8_t outputData = 0;
 
+
+//#define PROX_MISO 9
+
 //void saveConfig() {
 //  EEPROM.put(0, threshold);
 //}
@@ -34,18 +39,26 @@ void setup() {
   }
 
   // have to send on master in, *slave out*
-  pinMode(MISO, OUTPUT);
 
-  pinMode(IRQ, OUTPUT);
-  digitalWrite(IRQ, HIGH);
+//  pinMode(IRQ, OUTPUT);
+//  digitalWrite(IRQ, HIGH);
 
-//  restoreConfig();
+//  pinMode(PROX_CS, INPUT);
+//  digitalWrite(PROX_CS, HIGH);
 
-  // turn on SPI in slave mode
-  SPCR |= bit(SPE);
+//  pinMode(PROX_MISO, OUTPUT);
+//  digitalWrite(PROX_MISO, HIGH);
 
-  // turn on interrupts
-  SPCR |= bit(SPIE);
+
+  //  restoreConfig();
+
+//  // turn on SPI in slave mode
+//  SPCR |= bit(SPE);
+//
+//  // turn on interrupts
+//  SPCR |= bit(SPIE);
+
+  Wire.begin();
 
   FreqCount.begin(25);
 
@@ -61,37 +74,47 @@ void setup() {
   cal_max = 0;
 
   Serial.println("Ready");
+
+//  delay(3000);
+//    attachInterrupt(digitalPinToInterrupt(PROX_CS), proxInterrupt, FALLING);
+
 }
 
-// SPI interrupt routine
-ISR (SPI_STC_vect)
-{
-  byte c = SPDR;
-
-//  if (incomingData)
-//  {
-//    threshold = c * 4;
-//    incomingData = false;
-//    saveConfig();
-//  } else {
-
-    if (c == 1) {
-      SPDR = outputData;
-      return;
-    } 
-//    else if (c == 2) {
-//      incomingData = true;
-//      SPDR = 0;
-//      return;
-//    }
+//// SPI interrupt routine
+//ISR (SPI_STC_vect)
+//{
+////  pinMode(MISO, OUTPUT);
+//  byte c = SPDR;
+//
+//  if (c == 1) {
+//    SPDR = outputData;
+//    return;
 //  }
-  SPDR = 0;
-  digitalWrite(IRQ, HIGH);
-}
+//
+//  SPDR = 0;
+//  
+//  digitalWrite(IRQ, HIGH);
+////  pinMode(MISO, INPUT);
+//}
+
+//void proxInterrupt()
+//{
+//  Serial.println("Master is trying to read");
+//
+//  uint8_t idx = 0;
+//  
+//  while (idx < 8) {
+//    while (digitalRead(SCK) == LOW) {}
+//    digitalWrite(PROX_MISO, bitRead(outputData, idx++));
+//  }
+//
+//
+//  digitalWrite(IRQ, HIGH);
+//}
 
 void recalibrate(uint32_t in)
 {
-//  Serial.println("-- RECAL");
+  //  Serial.println("-- RECAL");
   if (cal_max <= RECAL_THRESHOLD) {
     freq_zero = in;
   }
@@ -141,6 +164,10 @@ void touchEvent(bool state)
   outputData = (state == true) ? 0xFF : 0x00;
   Serial.print("Sending touch event: ");
   Serial.println(outputData);
-  digitalWrite(IRQ, LOW);
+//  digitalWrite(IRQ, LOW);
+
+  Wire.beginTransmission(1);
+  Wire.write(outputData);
+  Wire.endTransmission();
 }
 
