@@ -36,7 +36,7 @@ class Ripple:
         while (self.offset < (10 - self.start) + 1) or ((self.start - self.offset) + 2 > 0):
 
             # Set the ripple time based on the trigger duration from ProxEvent
-            self.ripple_time = self.event.trigger_duration / 20
+            self.ripple_time = self.event.trigger_duration / 10
 
             if time.time() - self.last_tick < self.ripple_time:
                 return
@@ -71,26 +71,26 @@ class Ripple:
         raise StopIteration
 
 # Keep track of trigger/untrigger time for effect speed
-class ProxEvent:
-    trigger_duration = 0.5 # Maximum
+# class ProxEvent:
+#     trigger_duration = 0.5 # Maximum
 
-    def __init__(self, address):
-        self.address = address
-        self.trigger_time = time.time()
+#     def __init__(self, address):
+#         self.address = address
+#         self.trigger_time = time.time()
 
-    def untrigger(self):
-        duration = time.time() - self.trigger_time
-        self.trigger_duration = duration if duration < 0.5 else 0.5
-        # log.info("Updated duration to %s", self.trigger_duration)
+#     def untrigger(self):
+#         duration = time.time() - self.trigger_time
+#         self.trigger_duration = duration if duration < 0.5 else 0.5
+#         # log.info("Updated duration to %s", self.trigger_duration)
 
-class Pattern:
+# class Pattern:
 
-    def __init__(self, lights):
-        self.lights = lights
-        self.updates = []
-        self.effects = defaultdict(list)
-        self.output_stack = [[0]*10]
-        self.events = {}
+#     def __init__(self, lights):
+#         self.lights = lights
+#         self.updates = []
+#         self.effects = defaultdict(list)
+#         self.output_stack = [[0]*10]
+#         self.events = {}
 
     # def prox_event(self, address, payload):
     #     log.debug("Pattern prox event for %s (%s)", address, payload)
@@ -113,49 +113,51 @@ class Pattern:
     #                 pass
     #             del self.events[address]
 
-    def touch_event(self, address, state):
-        log.info("Pattern touch event for %s (%s)", address, state)
+    # def touch_event(self, address, state):
+    #     log.info("Pattern touch event for %s (%s)", address, state)
         
-        # We registered a new touch event
-        if state is True:
-            log.info("Touch trigger on %s", address)
-            event = ProxEvent(address)
+    #     # We registered a new touch event
+    #     if state is True:
+    #         log.info("Touch trigger on %s", address)
+    #         event = ProxEvent(address)
 
-            # Add a new ripple effect to the effects list
-            self.effects[address].append(Ripple(event))
+    #         # Add a new ripple effect to the effects list
+    #         self.effects[address].append(Ripple(event))
 
-        # Ending a touch event
-        else:
-            log.info("Touch untrigger on %s", address)
-            try:
-                # Untrigger the ripple effect
-                self.effects[address][-1].event.untrigger()
-            except IndexError:
-                pass
+    #     # Ending a touch event
+    #     else:
+    #         log.info("Touch untrigger on %s", address)
+    #         try:
+    #             # Untrigger the ripple effect
+    #             self.effects[address][-1].event.untrigger()
+    #         except IndexError:
+    #             pass
 
-    def tick(self):
-        # Get the next output for each effect running
-        for address in self.effects:
-            for effect in self.effects[address]:
-                try:
-                    output = next(effect)
-                    if output is not None:
-                        log.debug("Got output %s" % output)
+    # def tick(self):
+    #     # Get the next output for each effect running
+    #     for address in self.effects:
+    #         for effect in self.effects[address]:
+    #             try:
+    #                 output = next(effect)
+    #                 if output is not None:
+    #                     log.debug("Got output %s" % output)
 
-                        self.output_stack.append(output)
+    #                     self.output_stack.append(output)
 
-                except StopIteration:
-                    log.debug("Ripple finished")
-                    self.effects[address].remove(effect)
+    #             except StopIteration:
+    #                 log.debug("Ripple finished")
+    #                 self.effects[address].remove(effect)
 
-        # Set the light level for each light for each output in the stack
-        for light_idx in range(0, 10):
-            level = max([output[light_idx] for output in self.output_stack])
-            self.lights[light_idx].set_level(level)
+    #     # Set the light level for each light for each output in the stack
+    #     for light_idx in range(0, 10):
+    #         level = max([output[light_idx] for output in self.output_stack])
+    #         self.lights[light_idx].set_level(level)
 
-        # Add each light to be updeated to the updates list
-        for light in self.lights:
-            if light.update is True:
-                self.updates.append(light)
-                light.update = False
+        # # Add each light to be updeated to the updates list
+        # for light in self.lights:
+        #     if light.update is True:
+        #         self.updates.append(light)
+        #         light.update = False
+
+
 

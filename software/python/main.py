@@ -6,13 +6,11 @@ import logging as log
 from functools import partial
 
 from controller import Controller
-from pattern import Pattern
 from light import Light
 
 quit = False
 
 lights = [Light(x) for x in range(0, 10)]
-pattern = Pattern(lights)
 
 def signal_handler(sig, frame, transceivers):
     global quit
@@ -40,7 +38,7 @@ def run(args: list):
         import serial_xcvr
         transceivers.append(serial_xcvr.Transceiver(args.port))
 
-    cont = Controller(transceivers, pattern)
+    cont = Controller(transceivers, lights)
 
     for transceiver in transceivers:
         transceiver.register_callback(cont.received_message)
@@ -50,7 +48,7 @@ def run(args: list):
     signal.signal(signal.SIGINT, handler)
 
     a = 0
-    
+
     while quit is False:
         cont.tick()
         for transceiver in transceivers:
