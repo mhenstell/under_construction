@@ -39,7 +39,7 @@ void draw() {
 void mousePressed() {
   for (int idx = 0; idx < numLights; idx++) {
     if (lights.get(idx).isOver() == true) {      
-      pub_redis.publish("uc", idx + ":PROX:0");
+      pub_redis.publish("uc", idx + ":PROX:255");
     }
   }
 }
@@ -47,7 +47,7 @@ void mousePressed() {
 void mouseReleased() {
   for (int idx = 0; idx < numLights; idx++) {
     if (lights.get(idx).isOver() == true) {
-      pub_redis.publish("uc", idx + ":PROX:65535");      
+      pub_redis.publish("uc", idx + ":PROX:0");      
     }
   }
 }
