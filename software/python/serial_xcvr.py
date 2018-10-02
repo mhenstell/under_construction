@@ -8,8 +8,8 @@ import controller
 
 from simple_hdlc import HDLC
 
-PACKET_RETRY = 0.1
-PACKET_MAX_TRIES = 3
+# PACKET_RETRY = 0.1
+# PACKET_MAX_TRIES = 3
 
 # # Parse 32 bit integer into address, command, and payload
 # def parseUCPacket(data):
@@ -35,7 +35,7 @@ class Packet:
 
 class Transceiver:
 
-    sendTimeout = 0.01
+    sendTimeout = 0
 
     def __init__(self, device):
         self.device = device
@@ -52,6 +52,8 @@ class Transceiver:
 
         self.rx_thread = threading.Thread(target=self.reader)
         self.rx_thread.start()
+
+        self.start_time = time.time()
 
     def reader(self):
         first_line = True
@@ -88,7 +90,7 @@ class Transceiver:
         self.rx_callback = callback
 
     def _transmit(self, address, command, payload):
-        log.debug("Transmitting ADDR %s CMD %s PAYLOAD %s", address, command, payload)
+        # log.debug("Transmitting ADDR %s CMD %s PAYLOAD %s", address, command, payload)
         # output = bytearray([address, command, (payload >> 8), payload & 0xFF])
         
         output = bytearray([address, command])
@@ -96,51 +98,11 @@ class Transceiver:
 
         self.hdlc.sendFrame(output)
 
-    # def _transmitTrigger(self, trigger):
-    #     log.info("Transmitting trigger %s", trigger)
-
-    #     packet_num = 1
-    #     output = bytearray([trigger.light_id, packet_num, trigger.trigger_num, trigger.ramp_up, trigger.hold, trigger.ramp_down, trigger.level])
-    #     self.hdlc.sendFrame(output)
-
-    # def _transmitPacket(self, packet):
-    #     log.info("Transmitting packet %s", packet.num)
-    #     self.hdlc.sendFrame(packet.bytes)
-    #     packet.lastSent = time.time()
-    #     packet.tries += 1
-
     def transmit(self, address, command, payload):
         self.transmitQueue.append((address, command, payload))
 
-    # def transmitTrigger(self, trigger):
-    #     # self.transmitPacketQueue.append(Packet(trigger))
-    #     self.transmitPacketQueue.put(Packet(trigger))
-
-    # def tick(self):
-    #     # if not self.readyToTransmit:
-    #     #     return
-    #     if (time.time() - self.lastSent) > self.sendTimeout:
-    #         # if len(self.transmitTriggerQueue) > 0:
-    #         # if len(self.transmitPacketQueue) > 0:
-    #             # self._transmit(*self.transmitQueue.pop())
-    #             # self._transmitTrigger(self.transmitTriggerQueue.pop())
-    #             # self._transmitPacket(self.transmitPacketQueue.pop())
-    #             # log.info("Transmit queue size %s", len(self.transmitQueue))
-    #         try:
-    #             while True:
-    #                 packet = self.transmitPacketQueue.get(block=False)
-    #                 if packet.shouldSend():
-    #                     self._transmitPacket(packet)
-    #                     self.transmitPacketQueue.put(packet)
-    #                 elif packet.tries >= PACKET_MAX_TRIES:
-    #                     log.warning("Packet %s failed to ack", packet.num)
-    #         except Empty:
-    #             pass
-
-    #         self.lastSent = time.time()
     def tick(self):
-        # if not self.readyToTransmit:
-        #     return
+     
         if (time.time() - self.lastSent) > self.sendTimeout:
             if len(self.transmitQueue) > 0:
                 self._transmit(*self.transmitQueue.pop())

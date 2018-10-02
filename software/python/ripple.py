@@ -3,16 +3,14 @@ import logging as log
 
 class Ripple:
 
-    def __init__(self, event, start_time):
+    def __init__(self, event, start_time, frequency):
         self.event = event
         self.lights = [0] * 10
         self.offset = 0
-        self.last_tick = start_time
+        self.frequency = frequency # Hz
+        self.last_tick = start_time - (1 / self.frequency) # hack to get this to run the first tick
         self.start = event.address
-        self.ripple_time = 0.05
         self.exhausted = False
-
-        print("start time %s" % self.last_tick)
 
     def __iter__(self):
         return self
@@ -25,9 +23,8 @@ class Ripple:
         while (self.offset < (10 - self.start) + 1) or ((self.start - self.offset) + 2 > 0):
 
             # Set the ripple time based on the trigger duration from ProxEvent
-            self.ripple_time = self.event.trigger_duration / 10
-
-            if time.time() - self.last_tick < self.ripple_time:
+            # self.ripple_time = self.event.trigger_duration / 10
+            if time.time() - self.last_tick <= (1 / self.frequency):
                 return
             else:
                 # log.info("Event %s", self.event)
@@ -50,7 +47,7 @@ class Ripple:
                         mult = 1 - dist_lower
                     elif dist_upper < q:
                         mult = 1 - dist_upper
-                    level = int(255 * mult)
+                    level = max(int(255 * mult), 0)
 
                     self.lights[light] = level
                 

@@ -21,7 +21,7 @@ class Wave:
         #      Positive offset limit                    Negative offset limit
         while (self.offset < (10 - self.start) + 1) or ((self.start - self.offset) + 2 > 0):
 
-            if time.time() - self.last_tick < (self.duration / 100):
+            if time.time() - self.last_tick <= (self.duration / 100):
                 return
             else:
                 log.debug("Start: %s Offset: %s", self.start, self.offset)
@@ -32,7 +32,6 @@ class Wave:
                 for light in range(0, 10):
                     
                     dist = abs(marker - light)
-                    mult = 0
 
                     mult = 1.5 - (dist / 1.5)
                     
@@ -41,7 +40,7 @@ class Wave:
                     elif level < 0: level = 0
 
                     self.lights[light] = level
-                    print(self.lights)
+                    # print(self.lights)
                 
                 self.offset += 0.1
                 self.last_tick = time.time()

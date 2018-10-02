@@ -30,13 +30,13 @@ def run(args: list):
 
     transceivers = []
 
-    if args.redis:
-        import redis_xcvr
-        transceivers.append(redis_xcvr.Transceiver())
-
     if args.port is not None:
         import serial_xcvr
         transceivers.append(serial_xcvr.Transceiver(args.port))
+
+    if args.redis:
+        import redis_xcvr
+        transceivers.append(redis_xcvr.Transceiver())
 
     cont = Controller(transceivers, lights)
 
