@@ -37,7 +37,7 @@ class Controller:
 
         self.lights = lights
         self.transceivers = transceivers
-        
+
         self.first_cycle = True
 
         self.patterns = []
@@ -70,6 +70,7 @@ class Controller:
                 lights.append(light.light_level)
 
             log.debug("Sending lights: %s (%s patterns)", lights, len(self.patterns))
+
             address = BROADCAST
             command = COMMANDS_NAME["ALL_LEVEL"]
             payload = bytearray(lights)
@@ -78,7 +79,7 @@ class Controller:
                 transceiver.transmit(address, command, lights)
 
             self.last_cycle = time.time()
-            
+
 
         if time.time() - self.last_wave > 5:
             self.patterns.append(Wave(-3, 1, 3))
@@ -117,6 +118,7 @@ class Controller:
         # for address in self.patterns:
         #     for effect in self.effects[address]:
         # update = False
+        completed_patterns = []
         for pattern in self.patterns:
             try:
                 output = next(pattern)
@@ -125,13 +127,16 @@ class Controller:
 
                     self.output_stack.append(output)
                     # update = True
-
             except StopIteration:
                 log.debug("Pattern finished")
-                # self.effects[address].remove(effect)
-                self.patterns.remove(pattern)
-                if pattern in self.patterns_by_address[pattern.start]:
-                    self.patterns_by_address[pattern.start].remove(pattern)
+                completed_patterns.append(pattern)
+
+        # Remove all the patterns marked as completed
+        log.debug("Cleaning up %s completed patterns" % len(completed_patterns))
+        for pattern in completed_patterns:
+            self.patterns.remove(pattern)
+            if pattern in self.patterns_by_address[pattern.start]:
+                self.patterns_by_address[pattern.start].remove(pattern)
 
         # Set the light level for each light for each output in the stack
         # if update:
@@ -151,10 +156,10 @@ class Controller:
             cmd_func(address, payload)
 
     def prox_data(self, address, payload):
-        
-        state = True if payload in (b'\xff', 255) else False        
+
+        state = True if payload in (b'\xff', 255) else False
         log.info("Controller touch event for %s (%s) payload: %s", address, state, payload)
-        
+
         # We registered a new touch event
         if state is True:
             log.info("Touch trigger on %s", address)
@@ -174,7 +179,7 @@ class Controller:
                 self.patterns_by_address[address][-1].event.untrigger()
             except IndexError:
                 pass
-      
+
     def light_level(self, addr, payload):
         pass
 
