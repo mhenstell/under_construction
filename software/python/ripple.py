@@ -3,6 +3,8 @@ import logging as log
 
 class Ripple:
 
+    RIPPLE_TIMEOUT = 12
+
     def __init__(self, event, start_time, frequency):
         self.event = event
         self.lights = [0] * 10
@@ -11,6 +13,7 @@ class Ripple:
         self.last_tick = start_time - (1 / self.frequency) # hack to get this to run the first tick
         self.start = event.address
         self.exhausted = False
+        self.last_output = [0]*10
 
     def __iter__(self):
         return self
@@ -25,10 +28,10 @@ class Ripple:
             # Set the ripple time based on the trigger duration from ProxEvent
             # self.ripple_time = self.event.trigger_duration / 10
             if time.time() - self.last_tick <= (1 / self.frequency):
-                return
+                return self.last_output
             else:
                 # log.info("Event %s", self.event)
-                # log.info("%s %s", self.ripple_time, self.event.trigger_duration)
+                # log.info("%s", self.event.trigger_duration)
                 # log.debug("Start: %s Offset: %s", start, offset)
                 
                 # Calculate the upper and lower edge of the outward ripple
@@ -51,8 +54,9 @@ class Ripple:
 
                     self.lights[light] = level
                 
-                self.offset += 0.1
+                self.offset += 0.1 * (1.5 - (self.event.trigger_duration))
                 self.last_tick = time.time()
+                self.last_output = self.lights
                 return self.lights
         self.exhausted = True
         raise StopIteration

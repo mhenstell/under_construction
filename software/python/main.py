@@ -18,7 +18,7 @@ def signal_handler(sig, frame, transceivers):
     log.warning('You pressed Ctrl+C!')
     quit = True
     
-    for transceiver in transceivers:
+    for transceiver in transceivers.values():
         transceiver.stop()
     try:
         sys.exit(0)
@@ -28,19 +28,19 @@ def signal_handler(sig, frame, transceivers):
 def run(args: list):
     log.debug("Running with args: %s", args)
 
-    transceivers = []
+    transceivers = {}
 
     if args.port is not None:
         import serial_xcvr
-        transceivers.append(serial_xcvr.Transceiver(args.port))
+        transceivers["serial"] = serial_xcvr.Transceiver(args.port)
 
     if args.redis:
         import redis_xcvr
-        transceivers.append(redis_xcvr.Transceiver())
+        transceivers["redis"] = redis_xcvr.Transceiver()
 
     cont = Controller(transceivers, lights)
 
-    for transceiver in transceivers:
+    for transceiver in transceivers.values():
         transceiver.register_callback(cont.received_message)
 
     log.debug("Registering signal handler")
@@ -49,9 +49,10 @@ def run(args: list):
 
     a = 0
 
+    cont.first_run()
     while quit is False:
         cont.tick()
-        for transceiver in transceivers:
+        for transceiver in transceivers.values():
             transceiver.tick()
         # time.sleep(0.001)
 

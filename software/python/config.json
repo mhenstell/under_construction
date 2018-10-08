@@ -1,0 +1,65 @@
+{
+	"version": 0,
+	"lights": {
+		"0": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"1": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"2": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"3": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"4": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"5": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 100,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"6": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"7": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"8": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		},
+		"9": {
+			"RecalThreshold": 25,
+			"TouchThreshold": 250,
+			"RecalCycles": 20,
+			"SendProx": 1000
+		}
+	}
+}

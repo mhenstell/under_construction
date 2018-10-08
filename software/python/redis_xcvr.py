@@ -53,7 +53,7 @@ class Transceiver:
         split = str(data, encoding="ascii").split(":")
         address, command = split[0], split[1]
         
-        # log.info("ADDR %s CMD %s PAY %s", address, command, payload)
+        # log.debug("ADDR %s CMD %s PAY %s", address, command, data)
 
         if int(address) == BROADCAST:
             return
@@ -65,7 +65,7 @@ class Transceiver:
         self.rx_callback(address, command, payload)
 
     def transmit(self, address, command, payload):
-        # log.debug("xmit %s %s %s", address, command, payload)
+        # log.info("xmit %s %s %s", address, command, payload)
         if address < 0: return
 
         if type(payload) == list:

@@ -2,8 +2,10 @@ import time
 import logging as log
 from enum import Enum
 import random
+from prox_event import ProxEvent
 BREATH_STEP = 15
 MOVE_STEP = 1
+SIT_TIMEOUT = 10
 
 class Mode(Enum):
     SITTING = 0
@@ -13,12 +15,13 @@ class Keepaway:
 
     keepawayInstance = None
 
-    def __init__(self, event, start=None):
+    def __init__(self, event, frequency, start=None):
         self.lights = [0] * 10
         self.run = True
         self.freq = 0.05
         self.last_tick = 0
         self.event = event
+        self.frequency = frequency
 
         self.mode = Mode.SITTING
         self.pointer = self.event.address
@@ -27,8 +30,9 @@ class Keepaway:
         self.new_pointer = 0
         self.offset = 0
         self.move_direction = 1
+        self.started_sitting = time.time()
 
-    def newTouch(self, event):
+    def newTouch(self, event, start_time, frequency):
         log.info("KA got new event %s", event)
         self.event = event
         if self.event.address == self.pointer:
@@ -48,7 +52,7 @@ class Keepaway:
 
         while self.run:
 
-            if time.time() - self.last_tick < self.freq:
+            if time.time() - self.last_tick <= (1 / self.frequency):
                 return
             else:
                 
@@ -60,6 +64,11 @@ class Keepaway:
                     if self.breath_level >= 255 or self.breath_level <= 0:
                         self.breath_direction *= -1
                     self.lights[self.pointer] = self.breath_level
+
+                    if time.time() - self.started_sitting > SIT_TIMEOUT:
+                        log.info("Keepaway timeout")
+                        fake_event = ProxEvent(self.pointer)
+                        self.newTouch(fake_event, round(time.time() * 20, 0) / 20, self.frequency)
                     
 
                 elif self.mode == Mode.MOVING:
@@ -68,6 +77,7 @@ class Keepaway:
                     if abs(self.pointer - self.new_pointer) < MOVE_STEP:
                         self.pointer = self.new_pointer
                         self.mode = Mode.SITTING
+                        self.started_sitting = time.time()
 
                     self.lights = [0] * 10
                     self.lights[self.pointer] = 255
@@ -75,4 +85,5 @@ class Keepaway:
 
                 self.last_tick = time.time()
                 return self.lights
+        self.run = False
         raise StopIteration
