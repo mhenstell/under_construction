@@ -1,0 +1,4 @@
+sudo systemctl disable hciuart
+
+sudo chmod +x /etc/init.d/supervisor
+sudo update-rc.d supervisor defaults
