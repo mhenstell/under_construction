@@ -21,9 +21,10 @@ void setup() {
   smooth(2);
 
   courier = loadFont("Courier-12.vlw");
-
-  sub_redis = new Redis(this, "127.0.0.1", 6379);
-  pub_redis = new Redis(this, "127.0.0.1", 6379);
+  String redis_host = "127.0.0.1";
+  
+  sub_redis = new Redis(this, redis_host, 6379);
+  pub_redis = new Redis(this, redis_host, 6379);
 
   thread("redisThread");
 
