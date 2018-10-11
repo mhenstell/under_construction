@@ -2,6 +2,8 @@ import sys
 import time
 import signal
 import argparse
+import platform
+import subprocess
 import logging as log
 from functools import partial
 
@@ -47,14 +49,37 @@ def run(args: list):
     handler = partial(signal_handler, transceivers=transceivers)
     signal.signal(signal.SIGINT, handler)
 
-    a = 0
 
+    # Enter low power mode?
+    if platform.system() == "Linux":
+        log.warning("Linux detected - checking for LP jumper on pins 7 and 9")
+        from gpiozero import LED, Button
+        led = LED(27)
+        jumper = Button(4)
+
+        x = 25
+        while jumper.is_pressed:
+            led.on()
+            time.sleep(0.1)
+            led.off()
+            time.sleep(0.1)
+            x -= 1
+            if x == 0: break
+
+        if jumper.is_pressed:
+            log.warning("Entering low power mode")
+            try:
+                subprocess.call(['./low_power.sh'])
+            except PermissionError:
+                log.exception("Failed to call low power - check permissions")
+
+    log.info("Starting controller")
     cont.first_run()
     while quit is False:
         cont.tick()
         for transceiver in transceivers.values():
             transceiver.tick()
-        # time.sleep(0.001)
+        time.sleep(0.0001)
 
 if __name__ == "__main__":
 
@@ -65,6 +90,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     
-    log.basicConfig(level=getattr(log, args.verbosity), format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+    log.basicConfig(level=getattr(log, args.verbosity), format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S')
 
     run(args)

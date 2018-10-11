@@ -39,11 +39,11 @@ class Controller:
         self.last_cycle = 0
         # self.mode = Mode.RIPPLE
         # self.mode = Mode.KEEPAWAY
-        # self.mode = Mode.ALTERNATE
+        self.mode = Mode.ALTERNATE
         # self.mode = Mode.WAVE
         # self.mode = Mode.CYLON
 
-        self.mode = random.choice(list(Mode))
+        # self.mode = random.choice(list(Mode))
         self.last_mode_change = time.time()
         log.info("Starting %s", self.mode)
         
@@ -52,6 +52,8 @@ class Controller:
 
         self.priority = False
         self.last_triggered = [0] * 10
+
+        self.last_update = None
 
     def __str__(self):
         return repr(self)
@@ -113,7 +115,9 @@ class Controller:
     def clear_ripple(self, event, start_time, freq=CYCLE_HZ):
         ripple = Ripple(event, start_time, freq)
         self.patterns = [ripple]
+        log.info("Setting mode to %s", Mode.RIPPLE)
         self.mode = Mode.RIPPLE
+        self.touch_route_to = self.ripple
 
     def ripple(self, event, start_time, freq=CYCLE_HZ):
         ripple = Ripple(event, start_time, freq)
@@ -136,7 +140,7 @@ class Controller:
             if self.mode == Mode.KEEPAWAY:
                 self.start_keepaway()
             elif self.mode == Mode.RIPPLE:
-                self.touch_route_to = Ripple
+                self.touch_route_to = self.ripple
             elif self.mode == Mode.WAVE:
                 self.touch_route_to = self.clear_ripple
             elif self.mode == Mode.CYLON:
@@ -152,14 +156,17 @@ class Controller:
             self.handle_ripple()
 
     def tick(self):
+        self.checkMode()
+
         if (time.time() - self.last_cycle > (1 / CYCLE_HZ)) or self.priority:
             if self.priority: log.info("Priority!")
             self.priority = False
             self.processPatterns()
 
-            lights = []
-            for light in self.lights:
-                lights.append(light.light_level)
+            # Only send if we have an update
+            lights = [light.light_level for light in self.lights]
+            if lights == self.last_update: return
+            self.last_update = lights
 
             log.debug("Sending lights: %s (%s patterns)", lights, len(self.patterns))
 
@@ -171,8 +178,6 @@ class Controller:
                 transceiver.transmit(address, command, lights)
 
             self.last_cycle = time.time()
-
-        self.checkMode()
 
     def processPatterns(self):
         # Get the next output for each effect running

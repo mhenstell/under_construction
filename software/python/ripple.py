@@ -3,7 +3,7 @@ import logging as log
 
 class Ripple:
 
-    RIPPLE_TIMEOUT = 12
+    RIPPLE_TIMEOUT = 8
 
     def __init__(self, event, start_time, frequency):
         self.event = event

@@ -47,8 +47,8 @@ class Transceiver:
         log.warning("Stopping redis thread")
         self.rx_thread.stop()
 
-    def receive_message(self, message: dict):
-        data: str = message["data"]
+    def receive_message(self, message):
+        data = message["data"]
         # address, command, payload = str(data, encoding="ascii").split(":")
         split = str(data, encoding="ascii").split(":")
         address, command = split[0], split[1]

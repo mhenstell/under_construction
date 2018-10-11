@@ -144,16 +144,3 @@ class Transceiver:
                 self._transmit(*self.transmitQueue.pop())
 
             self.lastSent = time.time()
-        # try:
-        #    data = self.hdlc.readFrame(0.01)
-        #    print(data)
-        #    if self.rx_callback is not None:
-                
-        #         addr, command, payload = data[0], data[1], data[2:]
-        #         self.rx_callback(addr, command, payload)
-        # except RuntimeError:
-        #     pass
-        # try:
-        #     self._transmit(*self.transmitQueue.pop())
-        # except IndexError:
-        #     pass
