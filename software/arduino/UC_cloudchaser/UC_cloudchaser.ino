@@ -1,21 +1,19 @@
 #include <EEPROM.h>
 #include <FreqCount.h>
+#include <Adafruit_SleepyDog.h>
 #include "Arduhdlc.h"
+
+#define MAX_HDLC_FRAME_LENGTH 32
+#define LIGHT_ON_TIMEOUT 5000
 
 // Pins
 #define BULB 20
-
-// Default settings
-#define MAX_HDLC_FRAME_LENGTH 32
-#define PROX_PERIOD 200
-#define HEARTBEAT_PERIOD 1000
 
 // Config defines
 #define MAGIC_NUMBER 0xBEEF
 #define ID_ADDRESS 0
 #define CONFIG_ADDRESS 4
 #define LATEST_VERSION 0
-
 #define TOUCH_THRESHOLD 0x11
 #define RECAL_THRESHOLD 0x12
 
@@ -30,9 +28,6 @@
 #define SET_CONFIG 0x10
 #define TOUCH_TRIG 0x30
 #define TOUCH_UNTRIG 0x31
-
-
-uint8_t RADIO_ID;
 
 struct __attribute__((__packed__)) UCConfig_s
 {
@@ -56,10 +51,14 @@ uint16_t cal = 0;
 uint16_t count = 0;
 
 // Other variables
+uint8_t RADIO_ID;
 bool touchEventActive = false;
 uint8_t outputData = 0;
 UCConfig thisConfig;
 uint32_t lastProx = 0;
+uint32_t lightOn = 0;
+uint8_t currentLevel = 0;
+uint8_t lastLevel = 0;
 
 uint8_t in_pkt[100];
 uint8_t ip_len = 0;
@@ -110,12 +109,13 @@ void send_character(uint8_t data) {}
 
 void hdlc_frame_handler(const uint8_t *data, uint16_t len) {
 
-
   if (data[0] != 0xFF && data[0] != RADIO_ID) return;
 
   switch (data[1]) {
     case ALL_LEVEL:
-      analogWrite(BULB, data[2 + RADIO_ID]);
+
+      currentLevel = data[2 + RADIO_ID];
+      analogWrite(BULB, currentLevel);
       break;
     case SET_CONFIG:
       setConfig(data);
@@ -203,9 +203,6 @@ void setup() {
 
   pinMode(BULB, OUTPUT);
 
-  // UCConfig test = UCConfig_default;
-  // saveConfig(&test);
-
   // Get Radio ID from EEPROM
   RADIO_ID = getRadioID();
 
@@ -228,6 +225,7 @@ void setup() {
   thisConfig.TouchThreshold = 250;
 
   Serial.println("Ready");
+  Watchdog.enable();
 }
 
 void recalibrate(uint32_t in)
@@ -261,7 +259,9 @@ void loop() {
     }
 
     if (count % 10 == 0) {
-      Serial.print("freq_in: ");
+      Serial.print("R");
+      Serial.print(RADIO_ID);
+      Serial.print(" freq_in: ");
       Serial.print(freq_in);
       Serial.print(" freq_zero: ");
       Serial.print(freq_zero);
@@ -272,7 +272,9 @@ void loop() {
       Serial.print(" RT: ");
       Serial.print(thisConfig.RecalThreshold);
       Serial.print(" SP: ");
-      Serial.println(thisConfig.SendProx);
+      Serial.print(thisConfig.SendProx);
+      Serial.print(" LVL: ");
+      Serial.println(currentLevel);
     }
 
     count++;
@@ -290,14 +292,34 @@ void loop() {
     lastProx = millis();
   }
 
+  if (currentLevel > 0) {
+    if (lastLevel == 0) {
+      lightOn = millis();
+      lastLevel = currentLevel;
+    }
+
+    if (millis() - lightOn > LIGHT_ON_TIMEOUT) {
+      Serial.println("LIGHT ON TIMEOUT");
+
+      for (int x = currentLevel; x >= 0; x--) {
+        analogWrite(BULB, x);
+        delay(1);
+      }
+      currentLevel = 0;
+      lastLevel = 0;
+    }
+  } else {
+    lastLevel = 0;
+  }
+
+  Watchdog.reset();
 }
-//
+
 void serialEvent1() {
   while (Serial1.available()) {
     hdlc.receive(Serial1.read());
   }
 }
-
 
 void touchEvent(bool state)
 {
@@ -320,5 +342,4 @@ void touchEvent(bool state)
   for (int i = 0; i < len; i++) {
     Serial1.print((char)buf[i]);
   }
-
 }
